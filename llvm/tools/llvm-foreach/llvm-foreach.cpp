@@ -19,6 +19,7 @@
 #include "llvm/Support/Program.h"
 #include "llvm/Support/SystemUtils.h"
 
+#include <list>
 #include <vector>
 
 using namespace llvm;
@@ -170,6 +171,7 @@ int main(int argc, char **argv) {
   std::string IncOutArg;
   std::vector<std::string> ResInArgs(InReplaceArgs.size());
   std::string ResFileList = "";
+  std::list<sys::ProcessInfo> CommandsStarted;
   for (size_t j = 0; j != FileLists[0].size(); ++j) {
     for (size_t i = 0; i < InReplaceArgs.size(); ++i) {
       ArgumentReplace CurReplace = InReplaceArgs[i];
@@ -222,14 +224,27 @@ int main(int argc, char **argv) {
     }
 
     std::string ErrMsg;
-    // TODO: Add possibility to execute commands in parallel.
-    int Result =
-        sys::ExecuteAndWait(Prog, Args, /*Env=*/None, /*Redirects=*/None,
-                            /*SecondsToWait=*/0, /*MemoryLimit=*/0, &ErrMsg);
-    if (Result != 0) {
+    CommandsStarted.emplace_back(
+        sys::ExecuteNoWait(Prog, Args, /*Env=*/None, /*Redirects=*/None,
+                           /*MemoryLimit=*/0, &ErrMsg));
+    // int Result =
+    //     sys::ExecuteAndWait(Prog, Args, /*Env=*/None, /*Redirects=*/None,
+    //                         /*SecondsToWait=*/0, /*MemoryLimit=*/0, &ErrMsg);
+    // if (Result != 0) {
+    //   errs() << "llvm-foreach: " << ErrMsg << '\n';
+    //   Res = Result;
+    // }
+  }
+
+  std::string ErrMsg;
+  for (auto it = CommandsStarted.begin(); it != CommandsStarted.end();) {
+    sys::ProcessInfo WaitResult =
+        sys::Wait(*it, 0, /*WaitUntilTerminates*/ true, &ErrMsg);
+    if (WaitResult.ReturnCode != 0) {
       errs() << "llvm-foreach: " << ErrMsg << '\n';
-      Res = Result;
+      Res = WaitResult.ReturnCode;
     }
+    it = CommandsStarted.erase(it);
   }
 
   if (!OutputFileList.empty()) {
