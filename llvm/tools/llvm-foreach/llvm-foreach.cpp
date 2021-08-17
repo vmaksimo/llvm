@@ -70,6 +70,11 @@ static cl::opt<std::string> OutIncrement{
         "pass."),
     cl::init(""), cl::value_desc("R")};
 
+static cl::opt<bool> ExecuteInParallel{
+    "parallel-exec",
+    cl::desc("Enable launching input commands in parallel mode"), cl::init(false)
+    };
+
 static void error(const Twine &Msg) {
   errs() << "llvm-foreach: " << Msg << '\n';
   exit(1);
@@ -79,6 +84,22 @@ static void error(std::error_code EC, const Twine &Prefix) {
   if (EC)
     error(Prefix + ": " + EC.message());
 }
+
+// static void executeCommand(StringRef Program, ArrayRef<StringRef> Args, int &Res, bool IsParallelExecEnabled = false) {
+//   std::list<sys::ProcessInfo> CommandsStarted;
+//   std::string ErrMsg;
+//   if (IsParallelExecEnabled) {
+//     CommandsStarted.emplace_back(sys::ExecuteNoWait(Prog, Args, /*Env=*/None, /*Redirects=*/None, /*MemoryLimit=*/0, &ErrMsg));
+//     errs() << "llvm-foreach: " << ErrMsg << '\n';
+//   } else {
+//     int Result = sys::ExecuteAndWait(Prog, Args, /*Env=*/None, /*Redirects=*/None, /*SecondsToWait=*/0, /*MemoryLimit=*/0, &ErrMsg);
+//     if (Result != 0) {
+//         errs() << "llvm-foreach: " << ErrMsg << '\n';
+//         Res = Result;
+//     }
+//   }
+
+// }
 
 int main(int argc, char **argv) {
   cl::ParseCommandLineOptions(
@@ -224,18 +245,21 @@ int main(int argc, char **argv) {
     }
 
     std::string ErrMsg;
-    CommandsStarted.emplace_back(
-        sys::ExecuteNoWait(Prog, Args, /*Env=*/None, /*Redirects=*/None,
-                           /*MemoryLimit=*/0, &ErrMsg));
-    // int Result =
-    //     sys::ExecuteAndWait(Prog, Args, /*Env=*/None, /*Redirects=*/None,
-    //                         /*SecondsToWait=*/0, /*MemoryLimit=*/0, &ErrMsg);
-    // if (Result != 0) {
-    //   errs() << "llvm-foreach: " << ErrMsg << '\n';
-    //   Res = Result;
-    // }
+    if (ExecuteInParallel) {
+      CommandsStarted.emplace_back(sys::ExecuteNoWait(
+          Prog, Args, /*Env=*/None, /*Redirects=*/None, /*MemoryLimit=*/0));
+    } else {
+      int Result =
+          sys::ExecuteAndWait(Prog, Args, /*Env=*/None, /*Redirects=*/None,
+                              /*SecondsToWait=*/0, /*MemoryLimit=*/0, &ErrMsg);
+      if (Result != 0) {
+        errs() << "llvm-foreach: " << ErrMsg << '\n';
+        Res = Result;
+      }
+    }
   }
 
+  // Wait for all commands to be executed.
   std::string ErrMsg;
   for (auto it = CommandsStarted.begin(); it != CommandsStarted.end();) {
     sys::ProcessInfo WaitResult =
