@@ -248,27 +248,29 @@ int main(int argc, char **argv) {
     if (ExecuteInParallel) {
       CommandsStarted.emplace_back(sys::ExecuteNoWait(
           Prog, Args, /*Env=*/None, /*Redirects=*/None, /*MemoryLimit=*/0));
-    } else {
-      int Result =
-          sys::ExecuteAndWait(Prog, Args, /*Env=*/None, /*Redirects=*/None,
-                              /*SecondsToWait=*/0, /*MemoryLimit=*/0, &ErrMsg);
-      if (Result != 0) {
-        errs() << "llvm-foreach: " << ErrMsg << '\n';
-        Res = Result;
-      }
+      continue;
+    }
+
+    int Result =
+        sys::ExecuteAndWait(Prog, Args, /*Env=*/None, /*Redirects=*/None,
+                            /*SecondsToWait=*/0, /*MemoryLimit=*/0, &ErrMsg);
+    if (Result != 0) {
+      errs() << "llvm-foreach: " << ErrMsg << '\n';
+      Res = Result;
     }
   }
 
   // Wait for all commands to be executed.
   std::string ErrMsg;
-  for (auto it = CommandsStarted.begin(); it != CommandsStarted.end();) {
+  auto It = CommandsStarted.begin();
+  while (It != CommandsStarted.end()) {
     sys::ProcessInfo WaitResult =
-        sys::Wait(*it, 0, /*WaitUntilTerminates*/ true, &ErrMsg);
+        sys::Wait(*It, 0, /*WaitUntilTerminates*/ true, &ErrMsg);
     if (WaitResult.ReturnCode != 0) {
       errs() << "llvm-foreach: " << ErrMsg << '\n';
       Res = WaitResult.ReturnCode;
     }
-    it = CommandsStarted.erase(it);
+    It = CommandsStarted.erase(It);
   }
 
   if (!OutputFileList.empty()) {
