@@ -11493,7 +11493,7 @@ def err_sycl_esimd_vectorize_unsupported_value : Error<
 
 def err_nullptr_t_type_in_sycl_kernel : Error<"%0 is an invalid kernel name, "
                                         "'std::nullptr_t' is declared in the 'std' namespace ">;
-def err_invalid_std_type_in_sycl_kernel : Error<"%0 is an invalid kernel name, " 
+def err_invalid_std_type_in_sycl_kernel : Error<"%0 is an invalid kernel name, "
                                           "%q1 is declared in the 'std' namespace ">;
 
 def err_sycl_kernel_incorrectly_named : Error<
@@ -11571,10 +11571,10 @@ def err_sycl_invalid_accessor_property_list_template_param : Error<
 def err_sycl_num_kernel_wrong_reqd_wg_size : Error<
   "%0 attribute must evenly divide the work-group size for the %1 attribute">;
 
-def warn_sycl_pass_by_value_deprecated 
+def warn_sycl_pass_by_value_deprecated
     : Warning<"passing kernel functions by value is deprecated in SYCL 2020">,
       InGroup<Sycl2020Compat>, ShowInSystemHeader;
-def warn_sycl_pass_by_reference_future 
+def warn_sycl_pass_by_reference_future
     : Warning<"passing of kernel functions by reference is a SYCL 2020 extension">,
       InGroup<Sycl2017Compat>, ShowInSystemHeader;
 def warn_sycl_implicit_decl
@@ -11610,6 +11610,12 @@ def err_sycl_expected_finalize_method : Error<
 def ext_sycl_2020_attr_spelling : ExtWarn<
   "use of attribute %0 is a SYCL 2020 extension">,
   InGroup<Sycl2017Compat>;
+def err_sycl_taking_address_of_wrong_function : Error<
+  "taking address of a function not marked with "
+  "'intel::device_indirectly_callable' attribute is not allowed in SYCL device "
+  "code">;
+def err_add_ir_attr_filter_list_invalid_arg : Error<
+  "Attribute '%0' only allows a filter list in the first argument">;
 
 // errors of expect.with.probability
 def err_probability_not_constant_float : Error<

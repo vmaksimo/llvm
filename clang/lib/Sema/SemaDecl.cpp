@@ -2717,6 +2717,19 @@ static bool mergeDeclAttribute(Sema &S, NamedDecl *D,
     NewAttr = S.MergeIntelFPGABankWidthAttr(D, *A);
   else if (const auto *A = dyn_cast<IntelFPGANumBanksAttr>(Attr))
     NewAttr = S.MergeIntelFPGANumBanksAttr(D, *A);
+
+  else if (const auto *A = dyn_cast<SYCLDeviceHasAttr>(Attr))
+    NewAttr = S.MergeSYCLDeviceHasAttr(D, *A);
+  else if (const auto *A = dyn_cast<SYCLUsesAspectsAttr>(Attr))
+    NewAttr = S.MergeSYCLUsesAspectsAttr(D, *A);
+  else if (const auto *A = dyn_cast<SYCLIntelPipeIOAttr>(Attr))
+    NewAttr = S.MergeSYCLIntelPipeIOAttr(D, *A);
+  else if (const auto *A = dyn_cast<SYCLAddIRAttributesFunctionAttr>(Attr))
+    NewAttr = S.MergeSYCLAddIRAttributesFunctionAttr(D, *A);
+  else if (const auto *A =
+               dyn_cast<SYCLAddIRAttributesKernelParameterAttr>(Attr))
+    NewAttr = S.MergeSYCLAddIRAttributesKernelParameterAttr(D, *A);
+
   else if (Attr->shouldInheritEvenIfAlreadyPresent() || !DeclHasAttr(D, Attr))
     NewAttr = cast<InheritableAttr>(Attr->clone(S.Context));
 
