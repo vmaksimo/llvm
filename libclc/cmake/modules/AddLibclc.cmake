@@ -253,31 +253,33 @@ function(process_bc out_file)
     "LIB_TGT;IN_FILE;OUT_DIR"
     "OPT_FLAGS;DEPENDENCIES"
     ${ARGN})
-  add_custom_command( OUTPUT ${ARG_LIB_TGT}.bc
-    COMMAND ${opt_exe} ${ARG_OPT_FLAGS} -o ${ARG_LIB_TGT}.bc
-    ${ARG_IN_FILE}
-    DEPENDS ${opt_target} ${ARG_IN_FILE} ${ARG_DEPENDENCIES}
-  )
-  add_custom_target( ${ARG_LIB_TGT}
-    ALL DEPENDS ${ARG_LIB_TGT}.bc
+
+  # Check if the target already exists
+  if(NOT TARGET ${ARG_LIB_TGT})
+    add_custom_command(OUTPUT ${ARG_LIB_TGT}.bc
+      COMMAND ${opt_exe} ${ARG_OPT_FLAGS} -o ${ARG_LIB_TGT}.bc
+      ${ARG_IN_FILE}
+      DEPENDS ${opt_target} ${ARG_IN_FILE} ${ARG_DEPENDENCIES}
     )
-  set_target_properties( ${ARG_LIB_TGT}
-    PROPERTIES TARGET_FILE ${ARG_LIB_TGT}.bc
+    add_custom_target(${ARG_LIB_TGT}
+      ALL DEPENDS ${ARG_LIB_TGT}.bc
     )
+    set_target_properties(${ARG_LIB_TGT}
+      PROPERTIES TARGET_FILE ${ARG_LIB_TGT}.bc
+    )
+  endif()
 
   set( builtins_opt_lib $<TARGET_PROPERTY:${ARG_LIB_TGT},TARGET_FILE> )
 
   # Add prepare target
-  add_custom_command( OUTPUT ${ARG_OUT_DIR}/${out_file}
-    COMMAND ${prepare_builtins_exe} -o ${ARG_OUT_DIR}/${out_file}
-      ${builtins_opt_lib}
-      DEPENDS ${builtins_opt_lib} ${ARG_LIB_TGT} ${prepare_builtins_target} )
   add_custom_target( prepare-${out_file} ALL
     DEPENDS ${ARG_OUT_DIR}/${out_file}
   )
   set_target_properties( prepare-${out_file}
     PROPERTIES TARGET_FILE ${ARG_OUT_DIR}/${out_file}
   )
+  # community version:
+  # set_target_properties( "prepare-${obj_suffix}" PROPERTIES FOLDER "libclc/Device IR/Prepare" )
 endfunction()
 
 # Compiles a list of library source files (provided by LIB_FILES/GEN_FILES) and
@@ -450,15 +452,12 @@ function(add_libclc_builtin_set)
 
   set( builtins_link_lib $<TARGET_PROPERTY:${builtins_link_lib_tgt},TARGET_FILE> )
 
-<<<<<<< HEAD
   add_custom_command( OUTPUT ${LIBCLC_LIBRARY_OUTPUT_INTDIR}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${LIBCLC_LIBRARY_OUTPUT_INTDIR}
     DEPENDS ${builtins_link_lib} prepare_builtins )
 
-=======
   # For SPIR-V targets we diverage at this point and generate SPIR-V using the
   # llvm-spirv tool.
->>>>>>> 85d09de5fa19a32bbcc400928d55f9d633077640
   if( ARG_ARCH STREQUAL spirv OR ARG_ARCH STREQUAL spirv64 )
     set( obj_suffix ${ARG_ARCH_SUFFIX}.spv )
     add_custom_command( OUTPUT ${obj_suffix}
@@ -489,9 +488,6 @@ function(add_libclc_builtin_set)
       COMMAND ${prepare_builtins_exe} -o ${obj_suffix} ${builtins_opt_lib}
       DEPENDS ${builtins_opt_lib} ${builtins_opt_lib_tgt} ${prepare_builtins_target} )
   endif()
-
-<<<<<<< HEAD
-  set( builtins_opt_lib_tgt builtins.opt.${ARG_ARCH_SUFFIX} )
 
   process_bc(${ARG_ARCH_SUFFIX}.bc
     LIB_TGT ${builtins_opt_lib_tgt}
@@ -575,11 +571,10 @@ function(add_libclc_builtin_set)
       list(APPEND libclc-remangler-tests ${current-test})
     endforeach()
   endif()
-=======
+
   # Add a 'prepare' target
-  add_custom_target( prepare-${obj_suffix} ALL DEPENDS ${obj_suffix} )
-  set_target_properties( "prepare-${obj_suffix}" PROPERTIES FOLDER "libclc/Device IR/Prepare" )
->>>>>>> 85d09de5fa19a32bbcc400928d55f9d633077640
+  # add_custom_target( prepare-${obj_suffix} ALL DEPENDS ${obj_suffix} )
+  # set_target_properties( "prepare-${obj_suffix}" PROPERTIES FOLDER "libclc/Device IR/Prepare" )
 
   # Also add a 'prepare' target for the triple. Since a triple may have
   # multiple devices, ensure we only try to create the triple target once. The
@@ -612,24 +607,22 @@ function(add_libclc_builtin_set)
       PROPERTIES ENVIRONMENT "LLVM_CONFIG=${LLVM_CONFIG}" )
   endif()
 
-<<<<<<< HEAD
   foreach( a ${$ARG_ALIASES} )
     set( alias_suffix "${ARG_TARGET_ENV}${a}-${ARG_TRIPLE}.bc" )
     add_libclc_alias( ${alias_suffix}
       ${arch_suffix}
       PARENT_TARGET ${ARG_PARENT_TARGET})
-=======
-  foreach( a ${ARG_ALIASES} )
-    set( alias_suffix "${a}-${ARG_TRIPLE}.bc" )
-    add_custom_command(
-      OUTPUT ${alias_suffix}
-      COMMAND ${CMAKE_COMMAND} -E create_symlink ${obj_suffix} ${alias_suffix}
-      DEPENDS prepare-${obj_suffix} )
-    add_custom_target( alias-${alias_suffix} ALL DEPENDS ${alias_suffix} )
-    set_target_properties( alias-${alias_suffix} PROPERTIES FOLDER "libclc/Device IR/Aliases" )
-    install( FILES ${CMAKE_CURRENT_BINARY_DIR}/${alias_suffix}
-             DESTINATION "${CMAKE_INSTALL_DATADIR}/clc" )
->>>>>>> 85d09de5fa19a32bbcc400928d55f9d633077640
+  # community version
+  # foreach( a ${ARG_ALIASES} )
+  #   set( alias_suffix "${a}-${ARG_TRIPLE}.bc" )
+  #   add_custom_command(
+  #     OUTPUT ${alias_suffix}
+  #     COMMAND ${CMAKE_COMMAND} -E create_symlink ${obj_suffix} ${alias_suffix}
+  #     DEPENDS prepare-${obj_suffix} )
+  #   add_custom_target( alias-${alias_suffix} ALL DEPENDS ${alias_suffix} )
+  #   set_target_properties( alias-${alias_suffix} PROPERTIES FOLDER "libclc/Device IR/Aliases" )
+  #   install( FILES ${CMAKE_CURRENT_BINARY_DIR}/${alias_suffix}
+  #            DESTINATION "${CMAKE_INSTALL_DATADIR}/clc" )
   endforeach( a )
 
 endfunction(add_libclc_builtin_set)
